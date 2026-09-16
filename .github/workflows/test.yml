@@ -1,0 +1,50 @@
+name: API tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: wareops_test
+          POSTGRES_USER: wareops
+          POSTGRES_PASSWORD: wareops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wareops -d wareops_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      DATABASE_URL: postgresql://wareops:wareops@127.0.0.1:5432/wareops_test
+      JWT_ACCESS_SECRET: test-secret-with-at-least-32-characters
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL: 7d
+      COOKIE_SECURE: 'false'
+      COOKIE_SAME_SITE: lax
+      WEB_ORIGIN: http://localhost:3001
+      LOG_LEVEL: error
+      RUN_DATABASE_TESTS: 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run db:validate
+      - run: npm run db:generate
+      - run: npm run db:migrate:deploy
+      - run: npm test
+      - run: npm run test:e2e
