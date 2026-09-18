@@ -30,18 +30,18 @@ Las futuras rutas de negocio usarán el prefijo `/api/v1`.
 
 ## Variables de entorno
 
-| Variable | Uso | Ejemplo local |
-| --- | --- | --- |
-| `NODE_ENV` | Entorno de ejecución: `development`, `test` o `production`. | `development` |
-| `PORT` | Puerto donde escucha la API al ejecutarse directamente. | `3001` |
-| `DATABASE_URL` | URL PostgreSQL consumida por Prisma. | `postgresql://wareops:wareops_local@localhost:5432/wareops` |
-| `JWT_ACCESS_SECRET` | Secreto de al menos 32 caracteres reservado para autenticación. | Valor ficticio de `.env.example` |
-| `ACCESS_TOKEN_TTL` | Vigencia futura del access token. | `15m` |
-| `REFRESH_TOKEN_TTL` | Vigencia futura del refresh token. | `7d` |
-| `COOKIE_SECURE` | Exige HTTPS para cookies cuando sea `true`. | `false` |
-| `COOKIE_SAME_SITE` | Política `strict`, `lax` o `none`. | `lax` |
-| `WEB_ORIGIN` | Origen permitido por CORS. | `http://localhost:3000` |
-| `LOG_LEVEL` | Nivel mínimo del logger de Nest. | `log` |
+| Variable            | Uso                                                             | Ejemplo local                                               |
+| ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| `NODE_ENV`          | Entorno de ejecución: `development`, `test` o `production`.     | `development`                                               |
+| `PORT`              | Puerto donde escucha la API al ejecutarse directamente.         | `3001`                                                      |
+| `DATABASE_URL`      | URL PostgreSQL consumida por Prisma.                            | `postgresql://wareops:wareops_local@localhost:5432/wareops` |
+| `JWT_ACCESS_SECRET` | Secreto de al menos 32 caracteres reservado para autenticación. | Valor ficticio de `.env.example`                            |
+| `ACCESS_TOKEN_TTL`  | Vigencia futura del access token.                               | `15m`                                                       |
+| `REFRESH_TOKEN_TTL` | Vigencia futura del refresh token.                              | `7d`                                                        |
+| `COOKIE_SECURE`     | Exige HTTPS para cookies cuando sea `true`.                     | `false`                                                     |
+| `COOKIE_SAME_SITE`  | Política `strict`, `lax` o `none`.                              | `lax`                                                       |
+| `WEB_ORIGIN`        | Origen permitido por CORS.                                      | `http://localhost:3000`                                     |
+| `LOG_LEVEL`         | Nivel mínimo del logger de Nest.                                | `log`                                                       |
 
 Docker Compose también acepta `API_PORT`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD` para sobrescribir sus valores locales. Ningún valor de `.env.example` es apto para producción.
 
