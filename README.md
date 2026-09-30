@@ -60,7 +60,7 @@ El volumen `postgres_data` conserva la base. `docker compose down -v` también e
 
 ## Prisma
 
-El Sprint 01 no contiene modelos ni una migración vacía. Prisma Client se genera aun sin modelos y la primera migración será creada cuando Sprint 02 introduzca entidades.
+El esquema actual incluye las entidades de identidad, organizaciones, membresías, roles, permisos, invitaciones y sesiones de refresh en 3FN.
 
 ```bash
 npm run db:validate
@@ -70,7 +70,7 @@ npm run db:migrate:deploy
 npm run db:seed
 ```
 
-`db:migrate` es sólo para desarrollo. Las migraciones se generan desde `schema.prisma`, no se editan manualmente y producción usa `db:migrate:deploy`. El seed actual es intencionalmente vacío.
+`db:migrate` es sólo para desarrollo. Las migraciones se generan desde `schema.prisma`, no se editan manualmente y producción usa `db:migrate:deploy`. `db:seed` carga de forma idempotente los 5 roles predefinidos (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`), los 9 permisos, la matriz rol-permiso y dos organizaciones de demostración (`organizacion-norte` y `organizacion-sur`) con cuentas de prueba locales.
 
 ## Calidad
 
