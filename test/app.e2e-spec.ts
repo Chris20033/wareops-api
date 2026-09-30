@@ -108,6 +108,22 @@ describe('WareOps API (e2e)', () => {
     expect(response.status).toBe(200);
     expect(response.body.paths).toHaveProperty('/health/live');
     expect(response.body.paths).toHaveProperty('/health/ready');
+    expect(response.body.paths).toHaveProperty('/api/v1/auth/register');
+    expect(response.body.paths).toHaveProperty('/api/v1/auth/login');
+    expect(response.body.paths).toHaveProperty('/api/v1/auth/refresh');
+    expect(response.body.paths).toHaveProperty('/api/v1/auth/logout');
+    expect(response.body.paths).toHaveProperty('/api/v1/auth/me');
+    expect(response.body.paths).toHaveProperty('/api/v1/organizations');
+    expect(response.body.paths).toHaveProperty('/api/v1/organizations/current');
+    expect(response.body.paths).toHaveProperty('/api/v1/members');
+    expect(response.body.paths).toHaveProperty(
+      '/api/v1/members/{membershipId}',
+    );
+    expect(response.body.paths).toHaveProperty('/api/v1/invitations');
+    expect(response.body.paths).toHaveProperty(
+      '/api/v1/invitations/{invitationId}/revoke',
+    );
+    expect(response.body.paths).toHaveProperty('/api/v1/invitations/accept');
     expect(response.body.components.securitySchemes).toMatchObject({
       bearer: expect.any(Object),
       organizationId: expect.any(Object),
