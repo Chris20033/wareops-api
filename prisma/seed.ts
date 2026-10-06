@@ -146,6 +146,345 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
       });
     }
   }
+
+  // --- Seed Ubicaciones y Catálogo (Sprint 02) ---
+  const branchMty = await prisma.branch.upsert({
+    where: {
+      organizationId_code: {
+        organizationId: orgNorte.id,
+        code: 'SUC-MTY-01',
+      },
+    },
+    update: {
+      name: 'Sucursal Monterrey',
+      address: 'Av. Constitución 1000, Monterrey, NL',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      code: 'SUC-MTY-01',
+      name: 'Sucursal Monterrey',
+      address: 'Av. Constitución 1000, Monterrey, NL',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const branchCdmx = await prisma.branch.upsert({
+    where: {
+      organizationId_code: {
+        organizationId: orgNorte.id,
+        code: 'SUC-CDMX-01',
+      },
+    },
+    update: {
+      name: 'Sucursal CDMX',
+      address: 'Paseo de la Reforma 500, Cuauhtémoc, CDMX',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      code: 'SUC-CDMX-01',
+      name: 'Sucursal CDMX',
+      address: 'Paseo de la Reforma 500, Cuauhtémoc, CDMX',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const branchGdl = await prisma.branch.upsert({
+    where: {
+      organizationId_code: {
+        organizationId: orgSur.id,
+        code: 'SUC-GDL-01',
+      },
+    },
+    update: {
+      name: 'Sucursal Guadalajara',
+      address: 'Av. Vallarta 2000, Guadalajara, JAL',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgSur.id,
+      code: 'SUC-GDL-01',
+      name: 'Sucursal Guadalajara',
+      address: 'Av. Vallarta 2000, Guadalajara, JAL',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  await prisma.warehouse.upsert({
+    where: {
+      branchId_code: {
+        branchId: branchMty.id,
+        code: 'ALM-MTY-01',
+      },
+    },
+    update: {
+      name: 'Almacén Principal Monterrey',
+      description: 'Almacén general de alta rotación',
+      isActive: true,
+    },
+    create: {
+      branchId: branchMty.id,
+      code: 'ALM-MTY-01',
+      name: 'Almacén Principal Monterrey',
+      description: 'Almacén general de alta rotación',
+      isActive: true,
+    },
+  });
+
+  await prisma.warehouse.upsert({
+    where: {
+      branchId_code: {
+        branchId: branchMty.id,
+        code: 'ALM-MTY-02',
+      },
+    },
+    update: {
+      name: 'Almacén Refrigerado Monterrey',
+      description: 'Cámara fría para productos perecederos',
+      isActive: true,
+    },
+    create: {
+      branchId: branchMty.id,
+      code: 'ALM-MTY-02',
+      name: 'Almacén Refrigerado Monterrey',
+      description: 'Cámara fría para productos perecederos',
+      isActive: true,
+    },
+  });
+
+  await prisma.warehouse.upsert({
+    where: {
+      branchId_code: {
+        branchId: branchCdmx.id,
+        code: 'ALM-CDMX-01',
+      },
+    },
+    update: {
+      name: 'Almacén Central CDMX',
+      description: 'Centro de distribución metropolitano',
+      isActive: true,
+    },
+    create: {
+      branchId: branchCdmx.id,
+      code: 'ALM-CDMX-01',
+      name: 'Almacén Central CDMX',
+      description: 'Centro de distribución metropolitano',
+      isActive: true,
+    },
+  });
+
+  await prisma.warehouse.upsert({
+    where: {
+      branchId_code: {
+        branchId: branchGdl.id,
+        code: 'ALM-GDL-01',
+      },
+    },
+    update: {
+      name: 'Almacén Occidente',
+      description: 'Almacén principal occidente',
+      isActive: true,
+    },
+    create: {
+      branchId: branchGdl.id,
+      code: 'ALM-GDL-01',
+      name: 'Almacén Occidente',
+      description: 'Almacén principal occidente',
+      isActive: true,
+    },
+  });
+
+  const prodA01 = await prisma.product.upsert({
+    where: {
+      organizationId_sku: {
+        organizationId: orgNorte.id,
+        sku: 'PROD-A01',
+      },
+    },
+    update: {
+      name: 'Caja de Cartón Reforzada 40x40',
+      description: 'Empaque industrial corrugado calibre estándar',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      sku: 'PROD-A01',
+      name: 'Caja de Cartón Reforzada 40x40',
+      description: 'Empaque industrial corrugado calibre estándar',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const prodB02 = await prisma.product.upsert({
+    where: {
+      organizationId_sku: {
+        organizationId: orgNorte.id,
+        sku: 'PROD-B02',
+      },
+    },
+    update: {
+      name: 'Cinta de Embalaje Transparente 50m',
+      description: 'Cinta adhesiva acrílica para empaque',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      sku: 'PROD-B02',
+      name: 'Cinta de Embalaje Transparente 50m',
+      description: 'Cinta adhesiva acrílica para empaque',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const prodC03 = await prisma.product.upsert({
+    where: {
+      organizationId_sku: {
+        organizationId: orgNorte.id,
+        sku: 'PROD-C03',
+      },
+    },
+    update: {
+      name: 'Rollo Poliburbuja 100m',
+      description: 'Material amortiguante para embalaje',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      sku: 'PROD-C03',
+      name: 'Rollo Poliburbuja 100m',
+      description: 'Material amortiguante para embalaje',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  await prisma.product.upsert({
+    where: {
+      organizationId_sku: {
+        organizationId: orgSur.id,
+        sku: 'PROD-S01',
+      },
+    },
+    update: {
+      name: 'Tarima de Madera Estándar',
+      description: 'Pallet de pino 120x100 para carga pesada',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgSur.id,
+      sku: 'PROD-S01',
+      name: 'Tarima de Madera Estándar',
+      description: 'Pallet de pino 120x100 para carga pesada',
+      isActive: true,
+    },
+  });
+
+  const provAcme = await prisma.supplier.upsert({
+    where: {
+      organizationId_code: {
+        organizationId: orgNorte.id,
+        code: 'PROV-ACME-01',
+      },
+    },
+    update: {
+      name: 'Empaques y Cajas Acme S.A.',
+      contactName: 'Juan Pérez',
+      email: 'contacto@acmeempaques.com',
+      phone: '+528180001122',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      code: 'PROV-ACME-01',
+      name: 'Empaques y Cajas Acme S.A.',
+      contactName: 'Juan Pérez',
+      email: 'contacto@acmeempaques.com',
+      phone: '+528180001122',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const provLogix = await prisma.supplier.upsert({
+    where: {
+      organizationId_code: {
+        organizationId: orgNorte.id,
+        code: 'PROV-LOGIX-02',
+      },
+    },
+    update: {
+      name: 'Suministros Industriales Logix',
+      contactName: 'María González',
+      email: 'ventas@logixsuministros.com',
+      phone: '+525550003344',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgNorte.id,
+      code: 'PROV-LOGIX-02',
+      name: 'Suministros Industriales Logix',
+      contactName: 'María González',
+      email: 'ventas@logixsuministros.com',
+      phone: '+525550003344',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  await prisma.supplier.upsert({
+    where: {
+      organizationId_code: {
+        organizationId: orgSur.id,
+        code: 'PROV-SUR-01',
+      },
+    },
+    update: {
+      name: 'Maderas del Sur S.A.',
+      contactName: 'Carlos Ramos',
+      email: 'carlos@maderasdelsur.com',
+      phone: '+523330005566',
+      isActive: true,
+    },
+    create: {
+      organizationId: orgSur.id,
+      code: 'PROV-SUR-01',
+      name: 'Maderas del Sur S.A.',
+      contactName: 'Carlos Ramos',
+      email: 'carlos@maderasdelsur.com',
+      phone: '+523330005566',
+      isActive: true,
+    },
+  });
+
+  const productSupplierLinks = [
+    { productId: prodA01.id, supplierId: provAcme.id },
+    { productId: prodB02.id, supplierId: provLogix.id },
+    { productId: prodC03.id, supplierId: provAcme.id },
+  ];
+
+  for (const link of productSupplierLinks) {
+    const existing = await prisma.productSupplier.findUnique({
+      where: {
+        productId_supplierId: {
+          productId: link.productId,
+          supplierId: link.supplierId,
+        },
+      },
+      select: { productId: true },
+    });
+
+    if (!existing) {
+      await prisma.productSupplier.create({
+        data: link,
+      });
+    }
+  }
 }
 
 async function main(): Promise<void> {

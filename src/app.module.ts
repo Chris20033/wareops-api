@@ -11,6 +11,7 @@ import { RequestLoggingInterceptor } from './common/observability/request-loggin
 import { validateEnvironment } from './config/environment.validation.js';
 import { DatabaseModule } from './database/database.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 
@@ -26,6 +27,7 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
     HealthModule,
     AuthModule,
     OrganizationsModule,
+    CatalogModule,
   ],
   providers: [RequestLoggingInterceptor],
 })
