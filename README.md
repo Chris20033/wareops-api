@@ -26,7 +26,14 @@ La API queda disponible en `http://localhost:3001`. Las rutas operativas son:
 - `GET /docs`: interfaz Swagger.
 - `GET /docs-json`: documento OpenAPI JSON.
 
-Las futuras rutas de negocio usarán el prefijo `/api/v1`.
+Las rutas de negocio activas bajo el prefijo `/api/v1`:
+
+- **Autenticación e Identidad (`/api/v1/auth`, `/api/v1/organizations`, `/api/v1/invitations`):** login, refresh, cierre de sesión, perfil, cambio de organización activa, organizaciones y membresías.
+- **Sucursales (`/api/v1/branches`):** creación, listado paginado, detalle, actualización y desactivación lógica (`catalog:read`, `catalog:write`).
+- **Almacenes (`/api/v1/warehouses`):** creación vinculada a sucursal, listado paginado, detalle, actualización y desactivación lógica (`catalog:read`, `catalog:write`).
+- **Productos (`/api/v1/products`):** creación con SKU normalizado, listado paginado, detalle, actualización y desactivación lógica (`catalog:read`, `catalog:write`).
+- **Proveedores (`/api/v1/suppliers`):** creación con código normalizado y correo en minúsculas, listado paginado, detalle, actualización y desactivación lógica (`catalog:read`, `catalog:write`).
+- **Asociaciones Producto-Proveedor (`/api/v1/products/:productId/suppliers`):** listado de proveedores del producto, vinculación idempotente y eliminación de la asociación física (`catalog:read`, `catalog:write`).
 
 ## Variables de entorno
 
@@ -60,7 +67,7 @@ El volumen `postgres_data` conserva la base. `docker compose down -v` también e
 
 ## Prisma
 
-El esquema actual incluye las entidades de identidad, organizaciones, membresías, roles, permisos, invitaciones y sesiones de refresh en 3FN.
+El esquema actual incluye las entidades de identidad, organizaciones, membresías, roles, permisos, invitaciones, sesiones de refresh, sucursales (`Branch`), almacenes (`Warehouse`), productos (`Product`), proveedores (`Supplier`) y relaciones producto-proveedor (`ProductSupplier`) en 3FN.
 
 ```bash
 npm run db:validate
@@ -70,7 +77,7 @@ npm run db:migrate:deploy
 npm run db:seed
 ```
 
-`db:migrate` es sólo para desarrollo. Las migraciones se generan desde `schema.prisma`, no se editan manualmente y producción usa `db:migrate:deploy`. `db:seed` carga de forma idempotente los 5 roles predefinidos (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`), los 9 permisos, la matriz rol-permiso y dos organizaciones de demostración (`organizacion-norte` y `organizacion-sur`) con cuentas de prueba locales.
+`db:migrate` es sólo para desarrollo. Las migraciones se generan desde `schema.prisma`, no se editan manualmente y producción usa `db:migrate:deploy`. `db:seed` carga de forma idempotente los 5 roles predefinidos (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`), los 9 permisos, la matriz rol-permiso y dos organizaciones de demostración (`organizacion-norte` y `organizacion-sur`) con cuentas de prueba locales, sucursales, almacenes, catálogo de productos y proveedores de prueba vinculados.
 
 ## Calidad
 

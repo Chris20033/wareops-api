@@ -51,6 +51,9 @@ model Organization {
   updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   memberships Membership[]
   invitations Invitation[]
+  branches    Branch[]
+  products    Product[]
+  suppliers   Supplier[]
 
   @@map("organizations")
 }
@@ -142,5 +145,86 @@ model RefreshSession {
   @@index([userId, revokedAt])
   @@index([expiresAt])
   @@map("refresh_sessions")
+}
+
+model Branch {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  code           String       @db.VarChar(40)
+  name           String       @db.VarChar(120)
+  address        String?      @db.Text
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  warehouses     Warehouse[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive, name])
+  @@map("branches")
+}
+
+model Warehouse {
+  id          String   @id @default(uuid()) @db.Uuid
+  branchId    String   @map("branch_id") @db.Uuid
+  code        String   @db.VarChar(40)
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, code])
+  @@index([branchId, isActive, name])
+  @@map("warehouses")
+}
+
+model Product {
+  id               String            @id @default(uuid()) @db.Uuid
+  organizationId   String            @map("organization_id") @db.Uuid
+  sku              String            @db.VarChar(80)
+  name             String            @db.VarChar(160)
+  description      String?           @db.Text
+  isActive         Boolean           @default(true) @map("is_active")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  productSuppliers ProductSupplier[]
+
+  @@unique([organizationId, sku])
+  @@index([organizationId, isActive, name])
+  @@map("products")
+}
+
+model Supplier {
+  id               String            @id @default(uuid()) @db.Uuid
+  organizationId   String            @map("organization_id") @db.Uuid
+  code             String            @db.VarChar(40)
+  name             String            @db.VarChar(160)
+  contactName      String?           @map("contact_name") @db.VarChar(120)
+  email            String?           @db.VarChar(320)
+  phone            String?           @db.VarChar(40)
+  isActive         Boolean           @default(true) @map("is_active")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  productSuppliers ProductSupplier[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive, name])
+  @@map("suppliers")
+}
+
+model ProductSupplier {
+  productId  String   @map("product_id") @db.Uuid
+  supplierId String   @map("supplier_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@id([productId, supplierId])
+  @@index([supplierId])
+  @@map("product_suppliers")
 }
 
