@@ -46,5 +46,5 @@ jobs:
       - run: npm run db:validate
       - run: npm run db:generate
       - run: npm run db:migrate:deploy
-      - run: npm test
+      - run: npm test -- --runInBand
       - run: npm run test:e2e
