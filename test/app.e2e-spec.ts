@@ -142,6 +142,21 @@ describe('WareOps API (e2e)', () => {
     expect(response.body.paths).toHaveProperty(
       '/api/v1/suppliers/{supplierId}',
     );
+    expect(response.body.paths).toHaveProperty('/api/v1/inventory');
+    expect(response.body.paths).toHaveProperty('/api/v1/inventory/{balanceId}');
+    expect(response.body.paths).toHaveProperty(
+      '/api/v1/inventory/{balanceId}/minimum-stock',
+    );
+    expect(response.body.paths).toHaveProperty(
+      '/api/v1/inventory/minimum-stock',
+    );
+    expect(response.body.paths).toHaveProperty('/api/v1/inventory/entries');
+    expect(response.body.paths).toHaveProperty('/api/v1/inventory/exits');
+    expect(response.body.paths).toHaveProperty('/api/v1/inventory/adjustments');
+    expect(response.body.paths).toHaveProperty('/api/v1/movements');
+    expect(response.body.paths).toHaveProperty(
+      '/api/v1/movements/{movementId}',
+    );
     expect(response.body.components.securitySchemes).toMatchObject({
       bearer: expect.any(Object),
       organizationId: expect.any(Object),

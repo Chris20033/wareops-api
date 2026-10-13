@@ -10,6 +10,7 @@ import {
   type RoleCode,
 } from '../src/common/auth/rbac.constants.js';
 import {
+  InventoryOperationType,
   MembershipStatus,
   PrismaClient,
 } from '../src/generated/prisma/client.js';
@@ -214,7 +215,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
     select: { id: true },
   });
 
-  await prisma.warehouse.upsert({
+  const almMty01 = await prisma.warehouse.upsert({
     where: {
       branchId_code: {
         branchId: branchMty.id,
@@ -233,6 +234,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
       description: 'Almacén general de alta rotación',
       isActive: true,
     },
+    select: { id: true },
   });
 
   await prisma.warehouse.upsert({
@@ -256,7 +258,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
     },
   });
 
-  await prisma.warehouse.upsert({
+  const almCdmx01 = await prisma.warehouse.upsert({
     where: {
       branchId_code: {
         branchId: branchCdmx.id,
@@ -275,6 +277,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
       description: 'Centro de distribución metropolitano',
       isActive: true,
     },
+    select: { id: true },
   });
 
   await prisma.warehouse.upsert({
@@ -472,6 +475,115 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
     data: productSupplierLinks,
     skipDuplicates: true,
   });
+
+  // --- Seed Núcleo de Inventario (Sprint 03) ---
+  const balanceA01 = await prisma.inventoryBalance.upsert({
+    where: {
+      warehouseId_productId: {
+        warehouseId: almCdmx01.id,
+        productId: prodA01.id,
+      },
+    },
+    update: {
+      onHand: 50,
+      reserved: 0,
+      minimumStock: 10,
+    },
+    create: {
+      warehouseId: almCdmx01.id,
+      productId: prodA01.id,
+      onHand: 50,
+      reserved: 0,
+      minimumStock: 10,
+    },
+  });
+
+  await prisma.inventoryBalance.upsert({
+    where: {
+      warehouseId_productId: {
+        warehouseId: almCdmx01.id,
+        productId: prodB02.id,
+      },
+    },
+    update: {
+      onHand: 8,
+      reserved: 0,
+      minimumStock: 15,
+    },
+    create: {
+      warehouseId: almCdmx01.id,
+      productId: prodB02.id,
+      onHand: 8,
+      reserved: 0,
+      minimumStock: 15,
+    },
+  });
+
+  await prisma.inventoryBalance.upsert({
+    where: {
+      warehouseId_productId: {
+        warehouseId: almMty01.id,
+        productId: prodA01.id,
+      },
+    },
+    update: {
+      onHand: 100,
+      reserved: 0,
+      minimumStock: 20,
+    },
+    create: {
+      warehouseId: almMty01.id,
+      productId: prodA01.id,
+      onHand: 100,
+      reserved: 0,
+      minimumStock: 20,
+    },
+  });
+
+  const ownerMembership = await prisma.membership.findFirst({
+    where: {
+      organizationId: orgNorte.id,
+      user: {
+        email: 'owner@wareops.local',
+      },
+    },
+    select: { id: true, userId: true },
+  });
+
+  if (ownerMembership) {
+    const existingOp = await prisma.inventoryOperation.findFirst({
+      where: {
+        actorMembershipId: ownerMembership.id,
+        externalReference: 'SEED-INIT-ENTRY-001',
+      },
+      select: { id: true },
+    });
+
+    if (!existingOp) {
+      const op = await prisma.inventoryOperation.create({
+        data: {
+          actorMembershipId: ownerMembership.id,
+          type: InventoryOperationType.ENTRY,
+          reason: 'Carga de saldo inicial demostrativo',
+          externalReference: 'SEED-INIT-ENTRY-001',
+          entry: {
+            create: {
+              supplierId: provAcme.id,
+            },
+          },
+        },
+      });
+
+      await prisma.inventoryMovement.create({
+        data: {
+          operationId: op.id,
+          balanceId: balanceA01.id,
+          onHandDelta: 50,
+          reservedDelta: 0,
+        },
+      });
+    }
+  }
 }
 
 async function main(): Promise<void> {

@@ -34,6 +34,8 @@ Las rutas de negocio activas bajo el prefijo `/api/v1`:
 - **Productos (`/api/v1/products`):** creación con SKU normalizado, listado paginado, detalle, actualización y desactivación lógica (`catalog:read`, `catalog:write`).
 - **Proveedores (`/api/v1/suppliers`):** creación con código normalizado y correo en minúsculas, listado paginado, detalle, actualización y desactivación lógica (`catalog:read`, `catalog:write`).
 - **Asociaciones Producto-Proveedor (`/api/v1/products/:productId/suppliers`):** listado de proveedores del producto, vinculación idempotente y eliminación de la asociación física (`catalog:read`, `catalog:write`).
+- **Saldos y Configuración de Inventario (`/api/v1/inventory`):** listado paginado con filtros (`warehouseId`, `productId`, `alertOnly`, `search`), detalle de saldo calculando `available = onHand - reserved` y alerta `isBelowMinimum`, actualización de existencia mínima (`minimumStock`), entradas (`/entries`), salidas con control de disponibilidad (`/exits`) y ajustes físicos (`/adjustments`) con protección idempotente (`Idempotency-Key`) y transacciones `Serializable` (`inventory:read`, `inventory:write`, `catalog:write`).
+- **Kardex y Movimientos (`/api/v1/movements`):** historial paginado y trazable de movimientos con filtros por producto, almacén, tipo de operación, actor y rango de fechas (`inventory:read`).
 
 ## Variables de entorno
 
@@ -67,7 +69,7 @@ El volumen `postgres_data` conserva la base. `docker compose down -v` también e
 
 ## Prisma
 
-El esquema actual incluye las entidades de identidad, organizaciones, membresías, roles, permisos, invitaciones, sesiones de refresh, sucursales (`Branch`), almacenes (`Warehouse`), productos (`Product`), proveedores (`Supplier`) y relaciones producto-proveedor (`ProductSupplier`) en 3FN.
+El esquema actual incluye las entidades de identidad, organizaciones, membresías, roles, permisos, invitaciones, sesiones de refresh, sucursales (`Branch`), almacenes (`Warehouse`), productos (`Product`), proveedores (`Supplier`), relaciones producto-proveedor (`ProductSupplier`), saldos de inventario (`InventoryBalance`), cabeceras de operación (`InventoryOperation`), movimientos de inventario (`InventoryMovement`), detalle de entradas (`InventoryEntry`), registros de idempotencia (`IdempotencyRecord`) y eventos de auditoría (`AuditEvent`, `AuditChange`) en 3FN.
 
 ```bash
 npm run db:validate
