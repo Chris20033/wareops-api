@@ -468,23 +468,10 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
     { productId: prodC03.id, supplierId: provAcme.id },
   ];
 
-  for (const link of productSupplierLinks) {
-    const existing = await prisma.productSupplier.findUnique({
-      where: {
-        productId_supplierId: {
-          productId: link.productId,
-          supplierId: link.supplierId,
-        },
-      },
-      select: { productId: true },
-    });
-
-    if (!existing) {
-      await prisma.productSupplier.create({
-        data: link,
-      });
-    }
-  }
+  await prisma.productSupplier.createMany({
+    data: productSupplierLinks,
+    skipDuplicates: true,
+  });
 }
 
 async function main(): Promise<void> {
