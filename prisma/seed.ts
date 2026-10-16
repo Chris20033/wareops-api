@@ -237,7 +237,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
     select: { id: true },
   });
 
-  await prisma.warehouse.upsert({
+  const almMty02 = await prisma.warehouse.upsert({
     where: {
       branchId_code: {
         branchId: branchMty.id,
@@ -256,6 +256,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
       description: 'Cámara fría para productos perecederos',
       isActive: true,
     },
+    select: { id: true },
   });
 
   const almCdmx01 = await prisma.warehouse.upsert({
@@ -537,6 +538,27 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
       onHand: 100,
       reserved: 0,
       minimumStock: 20,
+    },
+  });
+
+  await prisma.inventoryBalance.upsert({
+    where: {
+      warehouseId_productId: {
+        warehouseId: almMty02.id,
+        productId: prodC03.id,
+      },
+    },
+    update: {
+      onHand: 20,
+      reserved: 0,
+      minimumStock: 0,
+    },
+    create: {
+      warehouseId: almMty02.id,
+      productId: prodC03.id,
+      onHand: 20,
+      reserved: 0,
+      minimumStock: 0,
     },
   });
 

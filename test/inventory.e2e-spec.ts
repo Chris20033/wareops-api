@@ -163,6 +163,28 @@ describe('Sprint 03 — Inventory Core and Platform Models (e2e)', () => {
       select: { id: true },
     });
     supplierAcmeId = supAcme.id;
+
+    // Ensure warehouseMty02 has a known initial stock for prodC03
+    await prisma.client.inventoryBalance.upsert({
+      where: {
+        warehouseId_productId: {
+          warehouseId: warehouseMty02Id,
+          productId: prodC03Id,
+        },
+      },
+      update: {
+        onHand: 20,
+        reserved: 0,
+        minimumStock: 0,
+      },
+      create: {
+        warehouseId: warehouseMty02Id,
+        productId: prodC03Id,
+        onHand: 20,
+        reserved: 0,
+        minimumStock: 0,
+      },
+    });
   });
 
   afterAll(async () => {
