@@ -196,7 +196,7 @@ describe('Sprint 03 — Inventory Core and Platform Models (e2e)', () => {
   describe('Inventory Balances & Queries (GET /api/v1/inventory)', () => {
     it('lists inventory balances with calculated available and alert status', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/v1/inventory')
+        .get('/api/v1/inventory?pageSize=100')
         .set('Authorization', `Bearer ${ownerToken}`)
         .set('X-Organization-Id', ownerOrgId);
 
@@ -205,12 +205,15 @@ describe('Sprint 03 — Inventory Core and Platform Models (e2e)', () => {
       expect(response.body.data.length).toBeGreaterThanOrEqual(2);
       expect(response.body.meta).toMatchObject({
         page: 1,
-        pageSize: 20,
+        pageSize: 100,
       });
 
       const balances = response.body.data as TestBalanceItem[];
 
-      const prodA = balances.find((b) => b.product.sku === 'PROD-A01');
+      const prodA = balances.find(
+        (b) =>
+          b.product.sku === 'PROD-A01' && b.warehouse.id === warehouseMty01Id,
+      );
       expect(prodA).toBeDefined();
       expect(prodA?.onHand).toBeGreaterThanOrEqual(50);
       expect(prodA?.reserved).toBe(0);
@@ -220,7 +223,10 @@ describe('Sprint 03 — Inventory Core and Platform Models (e2e)', () => {
       expect(prodA?.minimumStock).toBeGreaterThanOrEqual(10);
       expect(prodA?.isBelowMinimum).toBe(false);
 
-      const prodB = balances.find((b) => b.product.sku === 'PROD-B02');
+      const prodB = balances.find(
+        (b) =>
+          b.product.sku === 'PROD-B02' && b.warehouse.id === warehouseCdmx01Id,
+      );
       expect(prodB).toBeDefined();
       expect(prodB?.onHand).toBe(8);
       expect(prodB?.reserved).toBe(0);

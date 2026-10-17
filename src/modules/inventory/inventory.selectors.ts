@@ -96,3 +96,78 @@ export const INVENTORY_MOVEMENT_SELECTOR = {
 export type InventoryMovementPayload = Prisma.InventoryMovementGetPayload<{
   select: typeof INVENTORY_MOVEMENT_SELECTOR;
 }>;
+
+export const TRANSFER_SELECTOR = {
+  id: true,
+  operationId: true,
+  sourceBalanceId: true,
+  destinationBalanceId: true,
+  quantity: true,
+  operation: {
+    select: {
+      id: true,
+      actorMembershipId: true,
+      type: true,
+      reason: true,
+      externalReference: true,
+      createdAt: true,
+      actorMembership: {
+        select: {
+          id: true,
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              displayName: true,
+            },
+          },
+        },
+      },
+      movements: {
+        select: {
+          id: true,
+          operationId: true,
+          balanceId: true,
+          onHandDelta: true,
+          reservedDelta: true,
+          createdAt: true,
+          balance: {
+            select: {
+              id: true,
+              warehouseId: true,
+              productId: true,
+              onHand: true,
+              reserved: true,
+              minimumStock: true,
+              warehouse: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  branch: {
+                    select: {
+                      id: true,
+                      code: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  sourceBalance: {
+    select: INVENTORY_BALANCE_SELECTOR,
+  },
+  destinationBalance: {
+    select: INVENTORY_BALANCE_SELECTOR,
+  },
+} as const satisfies Prisma.TransferSelect;
+
+export type TransferPayload = Prisma.TransferGetPayload<{
+  select: typeof TRANSFER_SELECTOR;
+}>;

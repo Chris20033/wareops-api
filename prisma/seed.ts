@@ -520,7 +520,7 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
     },
   });
 
-  await prisma.inventoryBalance.upsert({
+  const balanceMty01A01 = await prisma.inventoryBalance.upsert({
     where: {
       warehouseId_productId: {
         warehouseId: almMty01.id,
@@ -539,6 +539,29 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
       reserved: 0,
       minimumStock: 20,
     },
+    select: { id: true },
+  });
+
+  const balanceMty02A01 = await prisma.inventoryBalance.upsert({
+    where: {
+      warehouseId_productId: {
+        warehouseId: almMty02.id,
+        productId: prodA01.id,
+      },
+    },
+    update: {
+      onHand: 15,
+      reserved: 0,
+      minimumStock: 5,
+    },
+    create: {
+      warehouseId: almMty02.id,
+      productId: prodA01.id,
+      onHand: 15,
+      reserved: 0,
+      minimumStock: 5,
+    },
+    select: { id: true },
   });
 
   await prisma.inventoryBalance.upsert({
@@ -603,6 +626,54 @@ export async function runSeed(prisma: PrismaClient): Promise<void> {
           onHandDelta: 50,
           reservedDelta: 0,
         },
+      });
+    }
+
+    // --- Seed Transferencia demostrativa (Sprint 04) ---
+    const existingTrf = await prisma.transfer.findFirst({
+      where: {
+        operation: {
+          externalReference: 'SEED-INIT-TRF-001',
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!existingTrf) {
+      const opTrf = await prisma.inventoryOperation.create({
+        data: {
+          actorMembershipId: ownerMembership.id,
+          type: InventoryOperationType.TRANSFER,
+          reason: 'Transferencia demostrativa entre almacenes Monterrey',
+          externalReference: 'SEED-INIT-TRF-001',
+        },
+      });
+
+      await prisma.transfer.create({
+        data: {
+          operationId: opTrf.id,
+          sourceBalanceId: balanceMty01A01.id,
+          destinationBalanceId: balanceMty02A01.id,
+          quantity: 15,
+        },
+      });
+
+      await prisma.inventoryMovement.createMany({
+        data: [
+          {
+            operationId: opTrf.id,
+            balanceId: balanceMty01A01.id,
+            onHandDelta: -15,
+            reservedDelta: 0,
+          },
+          {
+            operationId: opTrf.id,
+            balanceId: balanceMty02A01.id,
+            onHandDelta: 15,
+            reservedDelta: 0,
+          },
+        ],
+        skipDuplicates: true,
       });
     }
   }

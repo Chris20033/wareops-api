@@ -41,10 +41,12 @@ import {
   ConfigureMinimumStockDto,
   UpdateMinimumStockDto,
 } from './dto/update-minimum-stock.dto.js';
+import { CreateTransferDto } from './dto/create-transfer.dto.js';
 import { InventoryAdjustmentDto } from './dto/inventory-adjustment.dto.js';
 import { InventoryEntryDto } from './dto/inventory-entry.dto.js';
 import { InventoryExitDto } from './dto/inventory-exit.dto.js';
 import { InventoryQueryDto } from './dto/inventory-query.dto.js';
+import { TransfersQueryDto } from './dto/transfers-query.dto.js';
 import { InventoryService } from './inventory.service.js';
 
 @ApiTags('Inventory')
@@ -70,6 +72,75 @@ export class InventoryController {
     @Query() query: InventoryQueryDto,
   ) {
     return this.inventoryService.listBalances(tenant.organizationId, query);
+  }
+
+  @Post('transfers')
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions(PERMISSION_CODES.INVENTORY_WRITE)
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description:
+      'Clave única de idempotencia para la transacción de transferencia',
+  })
+  @ApiOperation({
+    summary:
+      'Registra una transferencia de inventario entre dos almacenes de forma idempotente, atómica y serializable.',
+  })
+  @ApiCreatedResponse({
+    description: 'Transferencia registrada y movimientos generados',
+  })
+  @ApiConflictResponse({ type: ApiErrorResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
+  @ApiForbiddenResponse({ type: ApiErrorResponseDto })
+  async transfer(
+    @CurrentTenant() tenant: TenantMembershipContext,
+    @Req() req: RequestWithId,
+    @IdempotencyKey() idempotencyKey: string,
+    @Body() dto: CreateTransferDto,
+  ) {
+    return this.inventoryService.recordTransfer(
+      tenant.organizationId,
+      tenant.membershipId,
+      req.authContext?.userId ?? 'system',
+      req.requestId,
+      dto,
+      idempotencyKey,
+    );
+  }
+
+  @Get('transfers')
+  @RequirePermissions(PERMISSION_CODES.INVENTORY_READ)
+  @ApiOperation({
+    summary:
+      'Lista el historial paginado de transferencias de inventario de la organización activa.',
+  })
+  @ApiOkResponse({ description: 'Listado paginado de transferencias' })
+  @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
+  @ApiForbiddenResponse({ type: ApiErrorResponseDto })
+  async listTransfers(
+    @CurrentTenant() tenant: TenantMembershipContext,
+    @Query() query: TransfersQueryDto,
+  ) {
+    return this.inventoryService.listTransfers(tenant.organizationId, query);
+  }
+
+  @Get('transfers/:transferId')
+  @RequirePermissions(PERMISSION_CODES.INVENTORY_READ)
+  @ApiOperation({
+    summary:
+      'Obtiene el detalle completo de una transferencia incluyendo almacenes, producto y ambos movimientos.',
+  })
+  @ApiOkResponse({ description: 'Detalle de la transferencia' })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
+  @ApiForbiddenResponse({ type: ApiErrorResponseDto })
+  async getTransfer(
+    @CurrentTenant() tenant: TenantMembershipContext,
+    @Param('transferId', ParseUuidParamPipe) transferId: string,
+  ) {
+    return this.inventoryService.getTransfer(tenant.organizationId, transferId);
   }
 
   @Get(':balanceId')

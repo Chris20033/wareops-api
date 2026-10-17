@@ -256,9 +256,11 @@ model InventoryBalance {
   minimumStock Int                 @default(0) @map("minimum_stock")
   createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz
-  warehouse    Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  product      Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
-  movements    InventoryMovement[]
+  warehouse            Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  product              Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  movements            InventoryMovement[]
+  sourceTransfers      Transfer[]          @relation("TransferSourceBalance")
+  destinationTransfers Transfer[]          @relation("TransferDestinationBalance")
 
   @@unique([warehouseId, productId])
   @@index([productId])
@@ -276,6 +278,7 @@ model InventoryOperation {
   actorMembership   Membership             @relation(fields: [actorMembershipId], references: [id], onDelete: Restrict)
   movements         InventoryMovement[]
   entry             InventoryEntry?
+  transfer          Transfer?
 
   @@index([actorMembershipId, createdAt])
   @@index([type, createdAt])
@@ -305,6 +308,21 @@ model InventoryEntry {
 
   @@index([supplierId])
   @@map("inventory_entries")
+}
+
+model Transfer {
+  id                   String             @id @default(uuid()) @db.Uuid
+  operationId          String             @unique @map("operation_id") @db.Uuid
+  sourceBalanceId      String             @map("source_balance_id") @db.Uuid
+  destinationBalanceId String             @map("destination_balance_id") @db.Uuid
+  quantity             Int
+  operation            InventoryOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  sourceBalance        InventoryBalance   @relation("TransferSourceBalance", fields: [sourceBalanceId], references: [id], onDelete: Restrict)
+  destinationBalance   InventoryBalance   @relation("TransferDestinationBalance", fields: [destinationBalanceId], references: [id], onDelete: Restrict)
+
+  @@index([sourceBalanceId])
+  @@index([destinationBalanceId])
+  @@map("transfers")
 }
 
 model IdempotencyRecord {

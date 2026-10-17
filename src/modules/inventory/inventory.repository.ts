@@ -3,11 +3,14 @@ import { PrismaService } from '../../database/prisma.service.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import type { InventoryQueryDto } from './dto/inventory-query.dto.js';
 import type { MovementsQueryDto } from './dto/movements-query.dto.js';
+import type { TransfersQueryDto } from './dto/transfers-query.dto.js';
 import {
   INVENTORY_BALANCE_SELECTOR,
   INVENTORY_MOVEMENT_SELECTOR,
+  TRANSFER_SELECTOR,
   type InventoryBalancePayload,
   type InventoryMovementPayload,
+  type TransferPayload,
 } from './inventory.selectors.js';
 
 @Injectable()
@@ -234,5 +237,106 @@ export class InventoryRepository {
       },
       select: INVENTORY_MOVEMENT_SELECTOR,
     });
+  }
+
+  async findTransferById(
+    organizationId: string,
+    transferId: string,
+  ): Promise<TransferPayload | null> {
+    return this.prisma.client.transfer.findFirst({
+      where: {
+        id: transferId,
+        sourceBalance: {
+          product: {
+            organizationId,
+          },
+        },
+      },
+      select: TRANSFER_SELECTOR,
+    });
+  }
+
+  async listTransfers(
+    organizationId: string,
+    query: TransfersQueryDto,
+  ): Promise<{
+    items: TransferPayload[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    const where: Prisma.TransferWhereInput = {
+      sourceBalance: {
+        product: {
+          organizationId,
+        },
+      },
+    };
+
+    if (query.productId) {
+      where.sourceBalance = {
+        ...(where.sourceBalance as Prisma.InventoryBalanceWhereInput),
+        productId: query.productId,
+      };
+    }
+
+    if (query.warehouseId) {
+      where.OR = [
+        { sourceBalance: { warehouseId: query.warehouseId } },
+        { destinationBalance: { warehouseId: query.warehouseId } },
+      ];
+    }
+
+    if (query.sourceWarehouseId) {
+      where.sourceBalance = {
+        ...(where.sourceBalance as Prisma.InventoryBalanceWhereInput),
+        warehouseId: query.sourceWarehouseId,
+      };
+    }
+
+    if (query.destinationWarehouseId) {
+      where.destinationBalance = {
+        ...(where.destinationBalance as Prisma.InventoryBalanceWhereInput),
+        warehouseId: query.destinationWarehouseId,
+      };
+    }
+
+    if (query.startDate || query.endDate) {
+      const createdAtFilter: Prisma.DateTimeFilter<'InventoryOperation'> = {};
+      if (query.startDate) {
+        createdAtFilter.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        createdAtFilter.lte = new Date(query.endDate);
+      }
+      where.operation = {
+        createdAt: createdAtFilter,
+      };
+    }
+
+    const total = await this.prisma.client.transfer.count({ where });
+    const totalPages = Math.max(1, Math.ceil(total / query.pageSize));
+    const offset = (query.page - 1) * query.pageSize;
+
+    const items = await this.prisma.client.transfer.findMany({
+      where,
+      select: TRANSFER_SELECTOR,
+      skip: offset,
+      take: query.pageSize,
+      orderBy: {
+        operation: {
+          createdAt: query.sortOrder,
+        },
+      },
+    });
+
+    return {
+      items,
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      totalPages,
+    };
   }
 }

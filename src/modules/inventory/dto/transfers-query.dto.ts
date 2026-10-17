@@ -1,0 +1,77 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
+
+export class TransfersQueryDto {
+  @ApiPropertyOptional({ description: 'Filtrar por ID de producto' })
+  @IsOptional()
+  @IsUUID('4')
+  productId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Filtrar por ID de almacén involucrado (origen o destino de la transferencia)',
+  })
+  @IsOptional()
+  @IsUUID('4')
+  warehouseId?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar por ID del almacén origen' })
+  @IsOptional()
+  @IsUUID('4')
+  sourceWarehouseId?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar por ID del almacén destino' })
+  @IsOptional()
+  @IsUUID('4')
+  destinationWarehouseId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fecha inicial (ISO-8601)',
+    example: '2026-01-01T00:00:00.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fecha final (ISO-8601)',
+    example: '2026-12-31T23:59:59.999Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiPropertyOptional({ default: 1, minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize: number = 20;
+
+  @ApiPropertyOptional({ enum: ['createdAt'], default: 'createdAt' })
+  @IsOptional()
+  @IsIn(['createdAt'])
+  sortBy: 'createdAt' | 'id' = 'createdAt';
+
+  @ApiPropertyOptional({ enum: ['asc', 'desc'], default: 'desc' })
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder: 'asc' | 'desc' = 'desc';
+}

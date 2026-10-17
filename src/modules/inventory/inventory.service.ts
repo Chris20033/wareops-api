@@ -16,19 +16,23 @@ import type {
   ConfigureMinimumStockDto,
   UpdateMinimumStockDto,
 } from './dto/update-minimum-stock.dto.js';
+import type { CreateTransferDto } from './dto/create-transfer.dto.js';
 import type { InventoryAdjustmentDto } from './dto/inventory-adjustment.dto.js';
 import type { InventoryEntryDto } from './dto/inventory-entry.dto.js';
 import type { InventoryExitDto } from './dto/inventory-exit.dto.js';
 import type { InventoryQueryDto } from './dto/inventory-query.dto.js';
 import type { MovementsQueryDto } from './dto/movements-query.dto.js';
+import type { TransfersQueryDto } from './dto/transfers-query.dto.js';
 import {
   toInventoryBalanceResponse,
   toInventoryMovementResponse,
+  toTransferResponse,
 } from './inventory.mapper.js';
 import { InventoryRepository } from './inventory.repository.js';
 import {
   INVENTORY_BALANCE_SELECTOR,
   INVENTORY_MOVEMENT_SELECTOR,
+  TRANSFER_SELECTOR,
 } from './inventory.selectors.js';
 
 export class ConcurrentModificationInternalError extends Error {
@@ -892,5 +896,299 @@ export class InventoryService {
     }
 
     return toInventoryMovementResponse(movement);
+  }
+
+  async recordTransfer(
+    organizationId: string,
+    actorMembershipId: string,
+    actorUserId: string,
+    requestId: string,
+    dto: CreateTransferDto,
+    idempotencyKey: string,
+  ) {
+    if (dto.quantity <= 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message:
+          'La cantidad a transferir debe ser un entero positivo mayor a cero.',
+      });
+    }
+
+    if (!dto.reason?.trim()) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'El motivo es obligatorio en una transferencia de inventario.',
+      });
+    }
+
+    if (dto.sourceWarehouseId === dto.destinationWarehouseId) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'El almacén de origen y destino deben ser distintos.',
+      });
+    }
+
+    const requestHash = this.idempotencyService.computeHash(
+      'POST',
+      '/api/v1/inventory/transfers',
+      organizationId,
+      dto,
+    );
+
+    const existingIdempotency = await this.idempotencyService.findRecord(
+      this.prisma.client,
+      organizationId,
+      idempotencyKey,
+    );
+
+    if (existingIdempotency) {
+      this.idempotencyService.validateHash(
+        existingIdempotency.requestHash,
+        requestHash,
+      );
+      return existingIdempotency.responseBody;
+    }
+
+    return this.runWithSerializableRetry(async (tx) => {
+      const inTxIdempotency = await this.idempotencyService.findRecord(
+        tx,
+        organizationId,
+        idempotencyKey,
+      );
+      if (inTxIdempotency) {
+        this.idempotencyService.validateHash(
+          inTxIdempotency.requestHash,
+          requestHash,
+        );
+        return inTxIdempotency.responseBody;
+      }
+
+      await this.validateWarehouseAndProduct(
+        tx,
+        organizationId,
+        dto.sourceWarehouseId,
+        dto.productId,
+      );
+
+      const destWarehouse = await tx.warehouse.findFirst({
+        where: {
+          id: dto.destinationWarehouseId,
+          branch: {
+            organizationId,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+        },
+      });
+
+      if (!destWarehouse || !destWarehouse.isActive) {
+        throw new NotFoundException({
+          code: 'RESOURCE_NOT_FOUND',
+          message: 'El almacén destino no existe o está inactivo.',
+        });
+      }
+
+      const sourceBalance = await tx.inventoryBalance.findUnique({
+        where: {
+          warehouseId_productId: {
+            warehouseId: dto.sourceWarehouseId,
+            productId: dto.productId,
+          },
+        },
+      });
+
+      if (!sourceBalance) {
+        throw new ConflictException({
+          code: 'INSUFFICIENT_STOCK',
+          message:
+            'No hay existencia disponible suficiente en el almacén origen.',
+          details: {
+            available: 0,
+            requested: dto.quantity,
+          },
+        });
+      }
+
+      const sourceAvailable = sourceBalance.onHand - sourceBalance.reserved;
+      if (sourceAvailable < dto.quantity) {
+        throw new ConflictException({
+          code: 'INSUFFICIENT_STOCK',
+          message:
+            'No hay existencia disponible suficiente en el almacén origen.',
+          details: {
+            available: sourceAvailable,
+            requested: dto.quantity,
+          },
+        });
+      }
+
+      let destBalance = await tx.inventoryBalance.findUnique({
+        where: {
+          warehouseId_productId: {
+            warehouseId: dto.destinationWarehouseId,
+            productId: dto.productId,
+          },
+        },
+      });
+
+      if (!destBalance) {
+        destBalance = await tx.inventoryBalance.create({
+          data: {
+            warehouseId: dto.destinationWarehouseId,
+            productId: dto.productId,
+            onHand: 0,
+            reserved: 0,
+            minimumStock: 0,
+          },
+        });
+      }
+
+      const previousSourceOnHand = sourceBalance.onHand;
+      const newSourceOnHand = previousSourceOnHand - dto.quantity;
+
+      const sourceUpdateResult = await tx.inventoryBalance.updateMany({
+        where: {
+          id: sourceBalance.id,
+          onHand: sourceBalance.onHand,
+          reserved: sourceBalance.reserved,
+        },
+        data: {
+          onHand: newSourceOnHand,
+        },
+      });
+
+      if (sourceUpdateResult.count === 0) {
+        throw new ConcurrentModificationInternalError();
+      }
+
+      const previousDestOnHand = destBalance.onHand;
+      const newDestOnHand = previousDestOnHand + dto.quantity;
+
+      const destUpdateResult = await tx.inventoryBalance.updateMany({
+        where: {
+          id: destBalance.id,
+          onHand: destBalance.onHand,
+          reserved: destBalance.reserved,
+        },
+        data: {
+          onHand: newDestOnHand,
+        },
+      });
+
+      if (destUpdateResult.count === 0) {
+        throw new ConcurrentModificationInternalError();
+      }
+
+      const operation = await tx.inventoryOperation.create({
+        data: {
+          actorMembershipId,
+          type: InventoryOperationType.TRANSFER,
+          reason: dto.reason.trim(),
+          externalReference: dto.externalReference?.trim() || null,
+        },
+      });
+
+      const transfer = await tx.transfer.create({
+        data: {
+          operationId: operation.id,
+          sourceBalanceId: sourceBalance.id,
+          destinationBalanceId: destBalance.id,
+          quantity: dto.quantity,
+        },
+      });
+
+      await tx.inventoryMovement.create({
+        data: {
+          operationId: operation.id,
+          balanceId: sourceBalance.id,
+          onHandDelta: -dto.quantity,
+          reservedDelta: 0,
+        },
+      });
+
+      await tx.inventoryMovement.create({
+        data: {
+          operationId: operation.id,
+          balanceId: destBalance.id,
+          onHandDelta: dto.quantity,
+          reservedDelta: 0,
+        },
+      });
+
+      await this.auditService.recordEvent(tx, {
+        organizationId,
+        actorUserId,
+        action: 'inventory.transfer',
+        entityType: 'Transfer',
+        entityId: transfer.id,
+        requestId,
+        changes: [
+          {
+            field: 'sourceOnHand',
+            oldValue: previousSourceOnHand,
+            newValue: newSourceOnHand,
+          },
+          {
+            field: 'destinationOnHand',
+            oldValue: previousDestOnHand,
+            newValue: newDestOnHand,
+          },
+          {
+            field: 'quantity',
+            oldValue: null,
+            newValue: dto.quantity,
+          },
+        ],
+      });
+
+      const createdPayload = await tx.transfer.findUniqueOrThrow({
+        where: { id: transfer.id },
+        select: TRANSFER_SELECTOR,
+      });
+
+      const responseDto = toTransferResponse(createdPayload);
+
+      await this.idempotencyService.saveRecord(tx, {
+        organizationId,
+        key: idempotencyKey,
+        requestHash,
+        method: 'POST',
+        route: '/api/v1/inventory/transfers',
+        responseStatus: 201,
+        responseBody: responseDto,
+        resourceType: 'Transfer',
+        resourceId: transfer.id,
+      });
+
+      return responseDto;
+    });
+  }
+
+  async getTransfer(organizationId: string, transferId: string) {
+    const payload = await this.repository.findTransferById(
+      organizationId,
+      transferId,
+    );
+    if (!payload) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message:
+          'La transferencia especificada no existe o no pertenece a la organización.',
+      });
+    }
+    return toTransferResponse(payload);
+  }
+
+  async listTransfers(organizationId: string, query: TransfersQueryDto) {
+    const result = await this.repository.listTransfers(organizationId, query);
+    return createPaginatedResult(
+      result.items.map(toTransferResponse),
+      result.total,
+      result.page,
+      result.pageSize,
+    );
   }
 }
